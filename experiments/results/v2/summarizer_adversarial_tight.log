@@ -1,0 +1,4 @@
+INFO ok aaa_decoy.py
+INFO error broken.py
+INFO ok calculator.py
+INFO discovered=9 checked=3 errors=1 omitted=6 complete=False

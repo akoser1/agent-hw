@@ -1,0 +1,62 @@
+12:18:33 READ   7 changed file(s): calculator.py, greeter.py, aaa_decoy.py, big_decoy.py, broken.py, liar.py, test_utils.py
+12:18:33 READ   2 existing test file(s), 4 existing tests
+12:18:33 ---- step 1/1 ----
+12:18:33 WRITE  using mock response from experiments/fixtures/adversarial_reply.md
+12:18:33 WRITE  2 candidate test(s): test_percent_of_half_buggy_expectation, test_percent_of_half_correct_expectation
+12:18:33 CHECK  DROP   test_percent_of_half_buggy_expectation   [conflict] expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)
+12:18:33 CHECK  DROP   test_percent_of_half_correct_expectation [failed] assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code
+12:18:33 SUSPECT test_percent_of_half_correct_expectation assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code
+12:18:33 SUSPECT test_percent_of_half_buggy_expectation  expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)
+12:18:33 SUSPECT 2 test(s) saved for review -> /Users/aziakoser/Desktop/AIHW/test_repo/tests/difftest_suspects.py
+12:18:33 OUTPUT no tests survived the checks
+12:18:33 REPORT
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 1,
+  "llm_calls": 1,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py",
+    "aaa_decoy.py",
+    "big_decoy.py",
+    "broken.py",
+    "liar.py",
+    "test_utils.py"
+  ],
+  "kept": [],
+  "rejected": [
+    {
+      "name": "test_percent_of_half_buggy_expectation",
+      "status": "conflict",
+      "reason": "expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)",
+      "step": 1
+    },
+    {
+      "name": "test_percent_of_half_correct_expectation",
+      "status": "failed",
+      "reason": "assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code",
+      "step": 1
+    }
+  ],
+  "carried_over": 0,
+  "suspects": [
+    {
+      "name": "test_percent_of_half_correct_expectation",
+      "status": "failed",
+      "reason": "assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code"
+    },
+    {
+      "name": "test_percent_of_half_buggy_expectation",
+      "status": "conflict",
+      "reason": "expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)"
+    }
+  ],
+  "output_file": null,
+  "final_check_passed": null,
+  "seconds": 0.16
+}

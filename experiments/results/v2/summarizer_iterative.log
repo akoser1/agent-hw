@@ -1,0 +1,7 @@
+INFO ok calculator.py
+INFO ok greeter.py
+INFO ok tests/difftest_suspects.py
+INFO ok tests/test_calculator.py
+INFO ok tests/test_difftest_generated.py
+INFO ok tests/test_greeter.py
+INFO discovered=6 checked=6 errors=0 omitted=0 complete=True

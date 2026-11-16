@@ -1,0 +1,14 @@
+Summarizer Agent Report
+Files discovered: 9 | Checked: 3 | Successful: 2 | Errors: 1 | Omitted: 6
+Validation: INCOMPLETE
+Not checked due to max-steps: greeter.py, huge.py, liar.py, test_utils.py, tests/test_calculator.py, tests/test_greeter.py
+
+ERROR in broken.py:
+File: broken.py
+ERROR: SyntaxError at line 1, column 12: invalid syntax
+PARTIAL RECOVERY (unverified): The file could not be parsed.
+The following are possible top-level declarations, not validated Python definitions:
+- Possible function: broken (line 1)
+Note: Partial recovery does not verify signatures, behavior, or correctness. File remains an error.
+
+Report saved: experiments/results/v2/summarizer_adversarial_tight.txt

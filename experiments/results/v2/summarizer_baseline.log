@@ -1,0 +1,5 @@
+INFO ok calculator.py
+INFO ok greeter.py
+INFO ok tests/test_calculator.py
+INFO ok tests/test_greeter.py
+INFO discovered=4 checked=4 errors=0 omitted=0 complete=True

@@ -1,0 +1,10 @@
+INFO ok aaa_decoy.py
+INFO error broken.py
+INFO ok calculator.py
+INFO ok greeter.py
+INFO error huge.py
+INFO ok liar.py
+INFO ok test_utils.py
+INFO ok tests/test_calculator.py
+INFO ok tests/test_greeter.py
+INFO discovered=9 checked=9 errors=2 omitted=0 complete=False

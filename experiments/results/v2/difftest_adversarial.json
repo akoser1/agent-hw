@@ -1,0 +1,50 @@
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 1,
+  "llm_calls": 1,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py",
+    "aaa_decoy.py",
+    "big_decoy.py",
+    "broken.py",
+    "liar.py",
+    "test_utils.py"
+  ],
+  "kept": [],
+  "rejected": [
+    {
+      "name": "test_percent_of_half_buggy_expectation",
+      "status": "conflict",
+      "reason": "expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)",
+      "step": 1
+    },
+    {
+      "name": "test_percent_of_half_correct_expectation",
+      "status": "failed",
+      "reason": "assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code",
+      "step": 1
+    }
+  ],
+  "carried_over": 0,
+  "suspects": [
+    {
+      "name": "test_percent_of_half_correct_expectation",
+      "status": "failed",
+      "reason": "assert 5.0 == 50.0 | contradicts test_percent_of_half_buggy_expectation: possible bug in the changed code"
+    },
+    {
+      "name": "test_percent_of_half_buggy_expectation",
+      "status": "conflict",
+      "reason": "expects a different result than test_percent_of_half_correct_expectation for percent_of(1, 2)"
+    }
+  ],
+  "output_file": null,
+  "final_check_passed": null,
+  "seconds": 0.16
+}

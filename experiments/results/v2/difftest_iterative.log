@@ -1,0 +1,32 @@
+12:18:32 READ   2 changed file(s): calculator.py, greeter.py
+12:18:32 READ   3 existing test file(s), 10 existing tests
+12:18:32 READ   6 test(s) from an earlier DiffTest run will be kept
+12:18:32 ---- step 1/1 ----
+12:18:32 WRITE  using mock response from experiments/fixtures/iterative_reply.md
+12:18:32 WRITE  1 candidate test(s): test_mean_two_values
+12:18:32 CHECK  KEEP   test_mean_two_values
+12:18:33 OUTPUT 1 new + 6 earlier test(s) -> /Users/aziakoser/Desktop/AIHW/test_repo/tests/test_difftest_generated.py (final run PASSED)
+12:18:33 REPORT
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 1,
+  "llm_calls": 1,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py"
+  ],
+  "kept": [
+    "test_mean_two_values"
+  ],
+  "rejected": [],
+  "carried_over": 6,
+  "suspects": [],
+  "output_file": "/Users/aziakoser/Desktop/AIHW/test_repo/tests/test_difftest_generated.py",
+  "final_check_passed": true,
+  "seconds": 0.27
+}

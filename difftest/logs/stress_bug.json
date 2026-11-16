@@ -1,0 +1,51 @@
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 1,
+  "llm_calls": 1,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py"
+  ],
+  "kept": [
+    "test_divide_rejects_non_numeric",
+    "test_mean_basic_and_single_value",
+    "test_mean_empty_list_raises",
+    "test_percent_of_zero_whole_raises",
+    "test_greet_strips_whitespace_and_excited",
+    "test_greet_blank_name_raises"
+  ],
+  "rejected": [
+    {
+      "name": "test_percent_of_rounds_to_one_decimal",
+      "status": "failed",
+      "reason": "assert 3.3 == 33.3",
+      "step": 1
+    },
+    {
+      "name": "test_percent_of_wrong_expectation",
+      "status": "failed",
+      "reason": "assert 3.3 == 33.33",
+      "step": 1
+    },
+    {
+      "name": "test_placeholder",
+      "status": "useless",
+      "reason": "trivial assert (assert True)",
+      "step": 1
+    },
+    {
+      "name": "test_add_again",
+      "status": "duplicate",
+      "reason": "duplicates tests/test_calculator.py::test_add",
+      "step": 1
+    }
+  ],
+  "output_file": "/Users/aziakoser/Desktop/AIHW/test_repo/tests/test_difftest_generated.py",
+  "final_check_passed": true,
+  "seconds": 0.43
+}

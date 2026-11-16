@@ -1,0 +1,26 @@
+DiffTest + Summarizer experiments — label=v2 mock=1 — Mon Nov 16 12:18:32 EST 2026
+
+== 1. BASELINE (fresh testbed) ==
+  summarizer/baseline: exit 0 | Files discovered: 4 | Checked: 4 | Successful: 4 | Errors: 0 | Omitted: 0
+  difftest/baseline: exit 0 | kept 6 | dropped 4 | tests in output file: 6
+  full test suite after baseline: 10 passed in 0.00s
+
+== 2. ITERATIVE (no reset: each agent re-runs on its own first-pass output) ==
+  summarizer/iterative: exit 0 | Files discovered: 6 | Checked: 6 | Successful: 6 | Errors: 0 | Omitted: 0
+  difftest/iterative: exit 0 | kept 1 | dropped 0 | tests in output file: 7
+  summarizer output changed between passes: yes (see summarizer_iterative.diff)
+  difftest generated tests: 6 before -> 7 after
+  full test suite after iterative: 11 passed in 0.00s
+
+== 3. ADVERSARIAL (decoy, misleading docstring, syntax error, oversized file, ambiguous file name, injected bug, tight max-steps) ==
+  summarizer/adversarial_tight: exit 1 | Files discovered: 9 | Checked: 3 | Successful: 2 | Errors: 1 | Omitted: 6
+  summarizer with --max-steps 3 analyzed: aaa_decoy.py broken.py calculator.py 
+  summarizer/adversarial_full: exit 1 | Files discovered: 9 | Checked: 9 | Successful: 7 | Errors: 2 | Omitted: 0
+  summarizer repeats the misleading docstring for safe_div: yes
+  summarizer flags the mismatch: no
+  difftest/adversarial: exit 0 | kept 0 | dropped 2 | tests in output file: 0
+  difftest kept a test that locks in the injected bug: no / check log
+  difftest set aside tests as possible bugs for review: 2
+  difftest treated test_utils.py (real code) as a test file: no
+
+Results saved in experiments/results/v2/

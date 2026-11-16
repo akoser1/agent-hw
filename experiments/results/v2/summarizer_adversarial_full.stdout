@@ -1,0 +1,16 @@
+Summarizer Agent Report
+Files discovered: 9 | Checked: 9 | Successful: 7 | Errors: 2 | Omitted: 0
+Validation: INCOMPLETE
+
+ERROR in broken.py:
+File: broken.py
+ERROR: SyntaxError at line 1, column 12: invalid syntax
+PARTIAL RECOVERY (unverified): The file could not be parsed.
+The following are possible top-level declarations, not validated Python definitions:
+- Possible function: broken (line 1)
+Note: Partial recovery does not verify signatures, behavior, or correctness. File remains an error.
+
+ERROR in huge.py:
+File exceeds 1 MiB safety limit.
+
+Report saved: experiments/results/v2/summarizer_adversarial_full.txt

@@ -1,0 +1,34 @@
+Summarizer Agent Report
+Files discovered: 9 | Checked: 3 | Successful: 2 | Errors: 1 | Omitted: 6
+Validation: INCOMPLETE
+Not checked due to max-steps: greeter.py, huge.py, liar.py, test_utils.py, tests/test_calculator.py, tests/test_greeter.py
+
+File: aaa_decoy.py
+SHA256: 2c17a4fc9da3fd5f39d94fd59005bfc7d9139a3f648efa4d645b653ab0a6c8f0
+Purpose: Decoy module: sorts first alphabetically and does nothing useful.
+Imports: none
+Functions:
+- noise(): No docstring; behavior inferred only from code structure. Observed: returns or produces a value.
+Classes:
+- none
+Note: Static analysis only; runtime behavior is not verified.
+
+File: broken.py
+ERROR: SyntaxError at line 1, column 12: invalid syntax
+PARTIAL RECOVERY (unverified): The file could not be parsed.
+The following are possible top-level declarations, not validated Python definitions:
+- Possible function: broken (line 1)
+Note: Partial recovery does not verify signatures, behavior, or correctness. File remains an error.
+
+File: calculator.py
+SHA256: 3d73cace956be34b0b1e12fd70c7b42148592fdd38ceafdbed1bbde1e1e29e44
+Purpose: Provide basic calculator operations.
+Imports: none
+Functions:
+- add(a, b): Return the sum of two numbers. Observed: returns or produces a value.
+- divide(a, b): Divide a by b, rejecting zero divisors and non-numeric input. Observed: returns or produces a value, checks conditions.
+- mean(values): Return the average of a non-empty list of numbers. Observed: returns or produces a value, checks conditions.
+- percent_of(part, whole): Return part as a percentage of whole, rounded to 1 decimal place. Observed: returns or produces a value.
+Classes:
+- none
+Note: Static analysis only; runtime behavior is not verified.
