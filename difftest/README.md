@@ -50,6 +50,10 @@ Run `bash ../reset_testbed.sh` before each run to reset the testbed. All command
 | `--price-in` / `--price-out` | 3 / 15 | USD per 1M tokens, used only for the cost estimate in the report |
 | `--mock-response` | | canned reply file; single offline step |
 | `--log-file` / `--report` | | full log / JSON summary (kept, rejected + reasons, tokens, cost, time) |
+| `--json` | off | also print the full JSON report in the terminal |
+| `--plain` | off | old-style plain output with timestamps (no colors or summary box) |
+
+The terminal shows color-coded progress and a short summary box at the end. The full JSON report goes to `--report` and to the end of `--log-file`.
 
 Exit code: `0` = OK, `1` = the final generated file failed when re-run, `2` = bad target.
 

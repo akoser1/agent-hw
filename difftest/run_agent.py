@@ -444,6 +444,89 @@ def merge_headers(a: str, b: str) -> str:
 
 # --------------------------------------------------------------------------- CLI
 
+# --------------------------------------------------------------------------- readable console output
+
+class Style:
+    """ANSI colors, switched off when output isn't a terminal or NO_COLOR is set."""
+    on = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+    @classmethod
+    def c(cls, text: str, code: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if cls.on else text
+
+    dim = classmethod(lambda cls, t: cls.c(t, "2"))
+    bold = classmethod(lambda cls, t: cls.c(t, "1"))
+    green = classmethod(lambda cls, t: cls.c(t, "32"))
+    red = classmethod(lambda cls, t: cls.c(t, "31"))
+    yellow = classmethod(lambda cls, t: cls.c(t, "33"))
+    cyan = classmethod(lambda cls, t: cls.c(t, "36"))
+
+
+class ConsoleFormatter(logging.Formatter):
+    """Turns the plain log lines into short, colored, indented lines for the terminal.
+    The --log-file keeps the original plain format."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        msg = record.getMessage()
+        S = Style
+        if msg.startswith("---- step"):
+            return "\n" + S.bold(msg.strip("- ").capitalize())
+        if msg.startswith("CHECK  KEEP"):
+            return f"  {S.green('✓ keep')}  {msg.split('KEEP', 1)[1].strip()}"
+        if msg.startswith("CHECK  DROP"):
+            m = re.match(r"CHECK  DROP\s+(\S+)\s+\[(\w+)\]\s*(.*)", msg)
+            if m:
+                name, kind, why = m.groups()
+                return f"  {S.red('✗ drop')}  {name}\n          {S.dim(kind + ':')} {why}"
+        if msg.startswith("SUSPECT"):
+            return f"  {S.yellow('⚠ ' + msg[len('SUSPECT'):].strip())}"
+        if msg.startswith("WRITE") and "candidate test(s):" in msg:
+            return f"  {S.cyan('write'):<7} {msg[len('WRITE'):].split(':')[0].strip()}"
+        for tag, color in (("READ", S.cyan), ("WRITE", S.cyan), ("CHECK", S.cyan), ("STOP", S.dim),
+                           ("LLM", S.dim)):
+            if msg.startswith(tag):
+                return f"  {color(tag.lower()):<7} {msg[len(tag):].strip()}"
+        return msg
+
+
+def print_summary(r: dict, report_path: str | None, log_path: str | None, mock: bool) -> None:
+    """A short boxed summary instead of dumping the JSON report into the terminal."""
+    S = Style
+    width = 64
+    line = "─" * width
+    out = ["", S.bold(f"── DiffTest summary {'─' * (width - 20)}")]
+    row = lambda k, v: out.append(f"  {S.dim(f'{k:<10}')} {v}")
+    row("Target", f"{Path(r['target']).name}  (changes vs {r['base']})")
+    row("Changed", ", ".join(r["changed_files"]) or "nothing")
+    out.append("")
+    n_kept, n_drop, n_sus = len(r["kept"]), len(r["rejected"]), len(r.get("suspects") or [])
+    out.append("  " + S.green(f"Kept ({n_kept})"))
+    out += [f"    {S.green('✓')} {n}" for n in r["kept"]] or [f"    {S.dim('none')}"]
+    if r["rejected"]:
+        out.append("  " + S.red(f"Dropped ({n_drop})"))
+        w = max(len(x["name"]) for x in r["rejected"])
+        for x in r["rejected"]:
+            out.append(f"    {S.red('✗')} {x['name']:<{w}}  {S.dim(x['status'] + ':')} {x['reason'][:70]}")
+    if r.get("suspects"):
+        out.append("  " + S.yellow(f"Possible bugs to review ({n_sus})"))
+        out += [f"    {S.yellow('⚠')} {x['name']}" for x in r["suspects"]]
+    out.append("")
+    if r["output_file"]:
+        verdict = S.green("PASSED") if r["final_check_passed"] else S.red("FAILED")
+        earlier = f" + {r['carried_over']} earlier" if r.get("carried_over") else ""
+        row("Output", f"{len(r['kept'])} new{earlier} test(s) → {Path(r['output_file']).name}  (final run {verdict})")
+    else:
+        row("Output", S.dim("no test file written"))
+    cost = "offline run, no Claude calls" if mock else \
+        f"{r['llm_calls']} Claude call(s) · {r['input_tokens']:,} in / {r['output_tokens']:,} out tokens · ~${r['est_cost_usd']:.4f}"
+    row("Cost", cost)
+    row("Time", f"{r['seconds']}s · {r['steps_used']} step(s)")
+    if report_path or log_path:
+        row("Saved", " · ".join(x for x in (log_path and f"log: {log_path}", report_path and f"report: {report_path}") if x))
+    out.append(S.dim(line))
+    print("\n".join(out))
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="difftest", description="DiffTest: write new tests for changed code.")
     ap.add_argument("--target", required=True, help="path to a git repository")
@@ -460,13 +543,25 @@ def main(argv=None) -> int:
     ap.add_argument("--mock-response", help="file with a canned LLM reply; runs offline with no API key")
     ap.add_argument("--log-file", help="write the full run log here")
     ap.add_argument("--report", help="write a JSON run report here")
+    ap.add_argument("--json", action="store_true", help="also print the full JSON report in the terminal")
+    ap.add_argument("--plain", action="store_true", help="plain timestamped output (no colors or layout)")
     args = ap.parse_args(argv)
 
-    handlers = [logging.StreamHandler(sys.stdout)]
+    console = logging.StreamHandler(sys.stdout)
+    if args.plain:
+        Style.on = False
+        console.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
+    else:
+        console.setFormatter(ConsoleFormatter())
+    if not args.plain:   # the summary box replaces these
+        console.addFilter(lambda rec: not rec.getMessage().startswith(("REPORT", "OUTPUT")))
+    handlers = [console]
     if args.log_file:
         Path(args.log_file).parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(args.log_file, mode="w"))
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S", handlers=handlers)
+        fh = logging.FileHandler(args.log_file, mode="w")
+        fh.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
+        handlers.append(fh)
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
 
     if not (Path(args.target) / ".git").exists():
         log.error("--target must be a git repository: %s", args.target)
@@ -474,10 +569,14 @@ def main(argv=None) -> int:
 
     report = run(args)
     summary = json.dumps(asdict(report), indent=2)
-    log.info("REPORT\n%s", summary)
+    log.info("REPORT\n%s", summary)          # full JSON goes to the log file only
     if args.report:
         Path(args.report).parent.mkdir(parents=True, exist_ok=True)
         Path(args.report).write_text(summary)
+    if args.json or args.plain:
+        print(summary)
+    else:
+        print_summary(asdict(report), args.report, args.log_file, bool(args.mock_response))
     if report.final_check_passed is False:
         return 1
     return 0
