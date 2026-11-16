@@ -21,13 +21,8 @@ bash reset_testbed.sh --no-change   # test_repo/ = baseline commit only
 pip install -r difftest/requirements.txt
 bash reset_testbed.sh
 
-cd summarizer
-python run_agent.py --target ../test_repo --max-steps 15 --format text --output summary.txt --log-file ./logs/baseline.log
-cd ..
+python3 summarizer/run_agent.py --target ./test_repo --output ./summarizer/summary.txt --log-file ./summarizer/logs/baseline.log
 
-cd difftest
-export ANTHROPIC_API_KEY=...        # or add --mock-response fixtures/mock_response.md to run offline
-python run_agent.py --target ../test_repo --max-steps 5 --log-file ./logs/baseline.log --report ./logs/baseline.json
-cd ..
+python3 difftest/run_agent.py --target ./test_repo --mock-response ./difftest/fixtures/mock_response.md --log-file ./difftest/logs/baseline.log --report ./difftest/logs/baseline.json
 ```
 Each agent's own README lists its options.
