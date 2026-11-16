@@ -80,6 +80,7 @@ cp experiments/adversarial/*.py test_repo/
 $PY -c "print('x = 1\n' * 200000, end='')" > test_repo/huge.py                     # 1.2 MB
 sed -i.bak 's/\* 100, 1)/* 10, 1)/' test_repo/calculator.py && rm -f test_repo/calculator.py.bak   # bug: percent_of off by 10x
 summarizer adversarial_tight --max-steps 3
+note "  summarizer with --max-steps 3 analyzed: $(grep '^File:' "$R/summarizer_adversarial_tight.txt" | sed 's/File: //' | tr '\n' ' ')"
 summarizer adversarial_full --max-steps 50
 note "  summarizer repeats the misleading docstring for safe_div: $(grep -q 'returning 0 when b is zero' "$R/summarizer_adversarial_full.txt" && echo yes || echo no)"
 note "  summarizer flags the mismatch: $(grep -qi 'warning' "$R/summarizer_adversarial_full.txt" && echo yes || echo no)"
@@ -87,6 +88,8 @@ rm -f test_repo/huge.py                                                         
 $PY -c "print(''.join(f'def decoy_{i}(x):\n    \"\"\"Decoy {i}.\"\"\"\n    return x + {i}\n\n' for i in range(400)))" > test_repo/big_decoy.py
 difftest adversarial experiments/fixtures/adversarial_reply.md --max-steps 1
 note "  difftest kept a test that locks in the injected bug: $(grep -q 'KEEP.*buggy\|== 5.0' "$R/difftest_adversarial_tests.py" 2>/dev/null && echo yes || echo 'no / check log')"
+note "  difftest set aside tests as possible bugs for review: $(grep -o 'SUSPECT [0-9]* test' "$R/difftest_adversarial.log" | grep -o '[0-9]*' || echo 0)"
+[[ -f test_repo/tests/difftest_suspects.py ]] && cp test_repo/tests/difftest_suspects.py "$R/difftest_adversarial_suspects.py"
 note "  difftest treated test_utils.py (real code) as a test file: $(grep -q 'test_utils.py' "$R/difftest_adversarial.log" && echo no || echo yes)"
 
 note ""; note "Results saved in $R/"

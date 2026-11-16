@@ -42,6 +42,7 @@ from pathlib import Path
 DEFAULT_MODEL = "claude-sonnet-5-5"
 DEFAULT_MAX_TOKENS = 4000
 OUTPUT_NAME = "test_difftest_generated.py"
+SUSPECT_NAME = "difftest_suspects.py"   # not collected by pytest: for a human to review
 
 SYSTEM_PROMPT = (
     "You are DiffTest, a helper who writes pytest tests. You are given a diff of code that "
@@ -49,7 +50,9 @@ SYSTEM_PROMPT = (
     "tests. Write NEW tests that check the changed code, focusing on difficult cases: edge cases, "
     "boundary values, error handling, and the specific behavior the diff introduced. Do not repeat "
     "what existing tests already check. Do not invent functions, classes, parameters, or modules "
-    "that do not exist in the source shown to you. Every test must contain at least one assert or "
+    "that do not exist in the source shown to you. Base expected values on the docstrings, names and "
+    "intent of the change, not on tracing the implementation line by line: the change itself may contain "
+    "bugs, and a test that copies a bug is worse than no test. Every test must contain at least one assert or "
     "pytest.raises. Respond with exactly one ```python code block containing a complete test "
     "module (imports at the top, then test functions named test_*), and nothing else."
 )
@@ -87,6 +90,8 @@ class RunReport:
     changed_files: list = field(default_factory=list)
     kept: list = field(default_factory=list)
     rejected: list = field(default_factory=list)
+    carried_over: int = 0
+    suspects: list = field(default_factory=list)
     output_file: str | None = None
     final_check_passed: bool | None = None
     seconds: float = 0.0
@@ -99,8 +104,28 @@ def git(target: Path, *args: str) -> str:
                           capture_output=True, text=True, check=True).stdout
 
 
-def is_test_file(p: Path) -> bool:
-    return p.name.startswith("test_") or p.name.endswith("_test.py") or "tests" in p.parts
+def is_test_file(p: Path, target: Path | None = None) -> bool:
+    """A file is a test if it lives in a tests/ folder, or is named like a test AND looks like one.
+
+    "Looks like one" = imports pytest/unittest, or its test_* functions take no arguments.
+    So a real helper module named test_utils.py with def test_mode(values) counts as source code.
+    """
+    if "tests" in p.parts:
+        return True
+    if not (p.name.startswith("test_") or p.name.endswith("_test.py")):
+        return False
+    if target is None or not (target / p).exists():
+        return True
+    try:
+        tree = ast.parse((target / p).read_text())
+    except (SyntaxError, UnicodeDecodeError):
+        return True
+    imports = {a.name.split(".")[0] for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    imports |= {(n.module or "").split(".")[0] for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
+    if imports & {"pytest", "unittest"}:
+        return True
+    funcs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("test")]
+    return not funcs or all(not (f.args.args or f.args.posonlyargs or f.args.kwonlyargs) for f in funcs)
 
 
 def read_changes(target: Path, base: str) -> tuple[str, dict[str, str]]:
@@ -112,11 +137,11 @@ def read_changes(target: Path, base: str) -> tuple[str, dict[str, str]]:
     sources = {}
     for n in dict.fromkeys(names):
         p = target / n
-        if p.exists() and not is_test_file(Path(n)):
+        if p.exists() and not is_test_file(Path(n), target):
             sources[n] = p.read_text()
     diff = "\n".join(
         block for block in re.split(r"(?=^diff --git )", diff, flags=re.M)
-        if block and not any(is_test_file(Path(t)) for t in re.findall(r"^diff --git a/(\S+)", block, re.M))
+        if block and not any(is_test_file(Path(t), target) for t in re.findall(r"^diff --git a/(\S+)", block, re.M))
     )
     return diff, sources
 
@@ -125,9 +150,9 @@ def read_existing_tests(target: Path) -> dict[str, str]:
     tests = {}
     for p in sorted(target.rglob("*.py")):
         rel = p.relative_to(target)
-        if any(part.startswith(".") for part in rel.parts) or p.name == OUTPUT_NAME:
+        if any(part.startswith(".") for part in rel.parts) or p.name == SUSPECT_NAME:
             continue
-        if is_test_file(rel):
+        if is_test_file(rel, target):   # includes earlier DiffTest output, so it isn't repeated
             tests[str(rel)] = p.read_text()
     return tests
 
@@ -287,6 +312,16 @@ def duplicate_of(c: Candidate, existing: dict[str, str], threshold: float) -> st
     return None
 
 
+def asserted_values(c: Candidate) -> dict[str, str]:
+    """{call expression: expected value} for every `assert <call> == <value>` in a test."""
+    out = {}
+    for n in ast.walk(ast.parse(textwrap.dedent(c.source))):
+        if (isinstance(n, ast.Assert) and isinstance(n.test, ast.Compare) and len(n.test.ops) == 1
+                and isinstance(n.test.ops[0], ast.Eq) and isinstance(n.test.left, ast.Call)):
+            out[ast.unparse(n.test.left)] = ast.unparse(n.test.comparators[0])
+    return out
+
+
 def judge(llm: LLM, diff: str, cands: list[Candidate]) -> dict:
     user = ("## Diff\n```diff\n" + diff + "\n```\n\n## Tests to review\n" +
             "\n\n".join(f"```python\n{c.source}```" for c in cands))
@@ -322,15 +357,39 @@ def run(args) -> RunReport:
     out_dir = target / "tests"
     out_dir.mkdir(exist_ok=True)
     out_file = out_dir / OUTPUT_NAME
+    suspect_file = out_dir / SUSPECT_NAME
+
+    # Tweak: keep tests from an earlier DiffTest run instead of overwriting them (iterative-run regression)
+    prior: dict[str, Candidate] = {}
+    prior_header = ""
+    if out_file.exists():
+        try:
+            prior_header, pc = split_module(out_file.read_text())
+            prior = {c.name: c for c in pc}
+            prior_header = "\n".join(l for l in prior_header.splitlines() if not l.startswith('"""Tests generated by DiffTest'))
+            log.info("READ   %d test(s) from an earlier DiffTest run will be kept", len(prior))
+        except SyntaxError as e:
+            log.warning("READ   earlier output %s is not valid Python (%s); it will be replaced", out_file, e)
 
     kept: dict[str, Candidate] = {}
+    suspects: list[Candidate] = []
     header = ""
+    last_header = ""
     feedback = ""
-    seen_names: set[str] = set()
+    seen_names: set[str] = set(prior)
+    steps = 1 if args.mock_response else args.max_steps     # mock replies never change, so one step
 
-    for step in range(1, args.max_steps + 1):
+    def trial_run(batch: list[Candidate], hdr: str, timeout: int) -> dict:
+        trial = out_dir / f"_difftest_trial_{os.getpid()}.py"
+        trial.write_text(hdr + "\n\n" + "\n\n".join(c.source for c in batch))
+        try:
+            return run_pytest(target, trial, timeout)
+        finally:
+            trial.unlink(missing_ok=True)
+
+    for step in range(1, steps + 1):
         report.steps_used = step
-        log.info("---- step %d/%d ----", step, args.max_steps)
+        log.info("---- step %d/%d ----", step, steps)
 
         # ---------------- WRITE
         if kept:
@@ -346,22 +405,32 @@ def run(args) -> RunReport:
             feedback = f"Your module had a syntax error: {e}. Return valid Python."
             log.info("CHECK  syntax error: %s", e)
             continue
+        reused = [c.name for c in cands if c.name in prior]
+        if reused:
+            log.info("CHECK  skip   %s (name already used by an earlier DiffTest test)", ", ".join(reused))
         cands = [c for c in cands if c.name not in kept and c.name not in seen_names]
         seen_names |= {c.name for c in cands}
         if not cands:
-            feedback = "You returned no new test_* functions."
+            feedback = "You returned no new test_* functions (use names that are not already taken)."
             log.info("CHECK  no new test functions")
             continue
         step_header = new_header if new_header.strip() else header
+        last_header = step_header
         log.info("WRITE  %d candidate test(s): %s", len(cands), ", ".join(c.name for c in cands))
 
         # ---------------- CHECK 2: runs and passes (failure mode 1)
-        trial = out_dir / f"_difftest_trial_{os.getpid()}.py"
-        trial.write_text(step_header + "\n\n" + "\n\n".join(c.source for c in cands))
-        try:
-            results = run_pytest(target, trial, args.timeout)
-        finally:
-            trial.unlink(missing_ok=True)
+        results = trial_run(cands, step_header, args.timeout)
+        if "__module__" in results and results["__module__"][1].startswith("pytest timed out"):
+            # Tweak: one hanging test used to sink the whole batch; now each test runs alone with its own limit
+            log.info("CHECK  batch timed out; re-running each test alone (limit %ss each)", args.test_timeout)
+            results = {}
+            for c in cands:
+                r = trial_run([c], step_header, args.test_timeout)
+                if "__module__" in r:
+                    msg = r["__module__"][1]
+                    results[c.name] = ("failed", "timed out (hangs)" if msg.startswith("pytest timed out") else msg)
+                else:
+                    results.update(r)
         if "__module__" in results:
             msg = results["__module__"][1]
             feedback = f"The test module failed to import/collect:\n{msg}\nFix the imports."
@@ -371,6 +440,20 @@ def run(args) -> RunReport:
             outcome, msg = results.get(c.name, ("failed", "not collected"))
             if outcome != "passed":
                 c.status, c.reason = "failed", msg.strip().splitlines()[0] if msg.strip() else outcome
+
+        # ---------------- CHECK 2b (tweak): contradictions = possible bug in the change
+        # If a failing test and a passing test expect different results for the SAME call,
+        # one of them is wrong and we can't tell which, so neither is trusted; both go to a human.
+        for f in [c for c in cands if c.status == "failed" and c.reason.startswith("assert")]:
+            f_expect = asserted_values(f)
+            for k in [c for c in cands if c.status == "pending"]:
+                clash = [call for call, val in asserted_values(k).items() if call in f_expect and f_expect[call] != val]
+                if clash:
+                    k.status, k.reason = "conflict", f"expects a different result than {f.name} for {clash[0]}"
+                    f.reason = f"{f.reason} | contradicts {k.name}: possible bug in the changed code"
+                    for c in (f, k):
+                        if c not in suspects:
+                            suspects.append(c)
 
         # ---------------- CHECK 3: useful (failure mode 2)
         for c in cands:
@@ -411,24 +494,38 @@ def run(args) -> RunReport:
         if len(kept) >= args.target_tests:
             log.info("STOP   reached %d kept tests", len(kept))
             break
-        if args.mock_response:
-            log.info("STOP   mock mode runs a single step")
-            break
 
     report.llm_calls = llm.calls
     report.input_tokens, report.output_tokens = llm.input_tokens, llm.output_tokens
     report.est_cost_usd = round(llm.input_tokens / 1e6 * args.price_in + llm.output_tokens / 1e6 * args.price_out, 4)
 
-    # ---------------- final: write kept tests and re-run them together (feeds the test system)
-    if kept:
+    # ---------------- suspects (tweak): saved for a human instead of silently deleted
+    if suspects:
+        suspect_file.write_text(
+            "# DiffTest: tests that contradict each other. One side may be catching a BUG in the changed code.\n"
+            "# This file is not collected by pytest. Decide which expectation is right, then fix the code or the test.\n"
+            + (header or last_header).strip() + "\n\n\n"
+            + "\n\n".join(f"# {c.status.upper()}: {c.reason}\n{c.source.rstrip()}\n" for c in suspects))
+        report.suspects = [{"name": c.name, "status": c.status, "reason": c.reason} for c in suspects]
+        for c in suspects:
+            log.info("SUSPECT %-39s %s", c.name, c.reason)
+        log.info("SUSPECT %d test(s) saved for review -> %s", len(suspects), suspect_file)
+    elif suspect_file.exists():
+        suspect_file.unlink()
+
+    # ---------------- final: write earlier + new tests and re-run them together (feeds the test system)
+    report.carried_over = len(prior)
+    if kept or prior:
+        all_tests = list(prior.values()) + list(kept.values())
+        hdr = merge_headers(prior_header, header) if prior_header.strip() and header else (header or prior_header)
         out_file.write_text(
             '"""Tests generated by DiffTest for changes vs ' + args.base + '. Review before committing."""\n'
-            + header.strip() + "\n\n\n" + "\n\n".join(c.source.rstrip() + "\n" for c in kept.values()))
+            + hdr.strip() + "\n\n\n" + "\n\n".join(c.source.rstrip() + "\n" for c in all_tests))
         final = run_pytest(target, out_file, args.timeout)
         report.final_check_passed = all(o == "passed" for o, _ in final.values()) and "__module__" not in final
         report.output_file = str(out_file)
         report.kept = list(kept)
-        log.info("OUTPUT %d test(s) -> %s (final run %s)", len(kept), out_file,
+        log.info("OUTPUT %d new + %d earlier test(s) -> %s (final run %s)", len(kept), len(prior), out_file,
                  "PASSED" if report.final_check_passed else "FAILED")
     else:
         log.info("OUTPUT no tests survived the checks")
@@ -537,7 +634,8 @@ def main(argv=None) -> int:
     ap.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     ap.add_argument("--judge", action="store_true", help="also run the LLM-judge usefulness check")
     ap.add_argument("--dup-threshold", type=float, default=0.95, help="similarity of normalized test bodies (values included) at/above which a test is a duplicate")
-    ap.add_argument("--timeout", type=int, default=120, help="pytest timeout in seconds")
+    ap.add_argument("--timeout", type=int, default=60, help="pytest timeout in seconds for a whole batch of tests")
+    ap.add_argument("--test-timeout", type=int, default=10, help="per-test limit used when a batch times out")
     ap.add_argument("--price-in", type=float, default=3.0, help="USD per 1M input tokens (for cost estimate)")
     ap.add_argument("--price-out", type=float, default=15.0, help="USD per 1M output tokens (for cost estimate)")
     ap.add_argument("--mock-response", help="file with a canned LLM reply; runs offline with no API key")

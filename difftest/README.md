@@ -17,6 +17,12 @@ It's a **Pipeline** agent: **Read → Write → Check**, looped up to `--max-ste
 2. **Tests that run but are useless**: dropped if they have no assert, only `assert True` / `x == x`, or never call a function/class from the changed files. `--judge` adds an LLM check.
 3. **Repeats of existing tests**: each test body is normalized (comments, whitespace and name removed; values kept) and compared with every existing test. At or above `--dup-threshold` (0.95) similarity, it's dropped.
 
+### Added in Part 4 (after stress testing)
+4. **Re-runs keep earlier output.** Tests from a previous DiffTest run are kept and counted as existing tests, so a second pass adds to the file instead of overwriting it.
+5. **Hanging tests.** If a batch times out, each test is re-run alone with `--test-timeout`; only the hanging test is dropped.
+6. **Possible bugs in the change.** If a failing test and a passing test expect different results for the same call, DiffTest can't tell which is right, so it keeps neither. Both go to `tests/difftest_suspects.py` (not collected by pytest) for a human to decide. The prompt also tells the model to take expected values from docstrings and intent rather than from the implementation.
+7. **Helper files named like tests.** A file like `test_utils.py` counts as a test only if it lives in `tests/`, imports pytest/unittest, or its `test_*` functions take no arguments. Otherwise it's treated as source code to test.
+
 ## Setup
 ```bash
 pip install -r requirements.txt
@@ -47,9 +53,10 @@ Run `bash ../reset_testbed.sh` before each run to reset the testbed. All command
 | `--model` / `--max-tokens` | `claude-sonnet-5-5` / 4000 | |
 | `--judge` | off | add the LLM-judge usefulness check |
 | `--dup-threshold` | 0.95 | duplicate similarity cutoff |
+| `--timeout` / `--test-timeout` | 60 / 10 | seconds for a whole batch of tests / for one test when a batch hangs |
 | `--price-in` / `--price-out` | 3 / 15 | USD per 1M tokens, used only for the cost estimate in the report |
 | `--mock-response` | | canned reply file; single offline step |
-| `--log-file` / `--report` | | full log / JSON summary (kept, rejected + reasons, tokens, cost, time) |
+| `--log-file` / `--report` | | full log / JSON summary (kept, rejected + reasons, suspects, tokens, cost, time) |
 | `--json` | off | also print the full JSON report in the terminal |
 | `--plain` | off | old-style plain output with timestamps (no colors or summary box) |
 
