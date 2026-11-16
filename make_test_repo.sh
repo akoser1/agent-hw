@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds ./test_repo: a tiny git repo with one committed version and one uncommitted change.
+# Builds ./demo_repo: a tiny git repo with one committed version and one uncommitted change.
 set -euo pipefail
-rm -rf test_repo && mkdir -p test_repo/pricing test_repo/tests && cd test_repo
+rm -rf demo_repo && mkdir -p demo_repo/pricing demo_repo/tests && cd demo_repo
 git init -q && git config user.email demo@example.com && git config user.name demo
 touch pricing/__init__.py
 cat > pricing/cart.py <<'PY'
@@ -39,4 +39,4 @@ def bulk_price(unit_price, qty):
         pct = 0
     return apply_discount(unit_price * qty, pct)
 PY
-echo "test_repo ready: pricing/cart.py has uncommitted changes vs HEAD"
+echo "demo_repo ready: pricing/cart.py has uncommitted changes vs HEAD"

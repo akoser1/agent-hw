@@ -21,21 +21,21 @@ It's a **Pipeline** agent: **Read → Write → Check**, looped up to `--max-ste
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-ant-...
-./make_test_repo.sh          # builds ./test_repo with one uncommitted change to test
+bash make_test_repo.sh          # builds ./demo_repo with one uncommitted change to test
 ```
 
 ## Run
 ```bash
 # offline, reproducible, no API key (canned LLM reply that exercises every failure mode)
-python run_agent.py --target ./test_repo --mock-response fixtures/mock_response.md --log-file ./logs/mock.log
+python run_agent.py --target ./demo_repo --mock-response mock_response.md --log-file ./logs/mock.log
 
 # real run
-python run_agent.py --target ./test_repo --max-steps 5 --log-file ./logs/baseline.log --report ./logs/baseline.json
+python run_agent.py --target ./demo_repo --max-steps 5 --log-file ./logs/baseline.log --report ./logs/baseline.json
 
 # with the LLM judge, diffing against an older commit
-python run_agent.py --target ./test_repo --base HEAD~1 --judge --log-file ./logs/judge.log
+python run_agent.py --target ./demo_repo --base HEAD~1 --judge --log-file ./logs/judge.log
 ```
-Run `./make_test_repo.sh` again before each run to reset the demo repo.
+Run `bash make_test_repo.sh` again before each run to reset the demo repo.
 
 ## Options
 | Flag | Default | Meaning |
