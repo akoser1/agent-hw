@@ -1,0 +1,64 @@
+12:03:44 READ   2 changed file(s): calculator.py, greeter.py
+12:03:44 READ   2 existing test file(s), 4 existing tests
+12:03:44 ---- step 1/5 ----
+12:03:44 WRITE  using mock response from difftest/fixtures/mock_response.md
+12:03:44 WRITE  10 candidate test(s): test_divide_rejects_non_numeric, test_mean_basic_and_single_value, test_mean_empty_list_raises, test_percent_of_rounds_to_one_decimal, test_percent_of_zero_whole_raises, test_greet_strips_whitespace_and_excited, test_greet_blank_name_raises, test_percent_of_wrong_expectation, test_placeholder, test_add_again
+12:03:44 CHECK  KEEP   test_divide_rejects_non_numeric
+12:03:44 CHECK  KEEP   test_mean_basic_and_single_value
+12:03:44 CHECK  KEEP   test_mean_empty_list_raises
+12:03:44 CHECK  KEEP   test_percent_of_rounds_to_one_decimal
+12:03:44 CHECK  KEEP   test_percent_of_zero_whole_raises
+12:03:44 CHECK  KEEP   test_greet_strips_whitespace_and_excited
+12:03:44 CHECK  KEEP   test_greet_blank_name_raises
+12:03:44 CHECK  DROP   test_percent_of_wrong_expectation        [failed] assert 33.3 == 33.33
+12:03:44 CHECK  DROP   test_placeholder                         [useless] trivial assert (assert True)
+12:03:44 CHECK  DROP   test_add_again                           [duplicate] duplicates tests/test_calculator.py::test_add
+12:03:44 STOP   reached 7 kept tests
+12:03:44 OUTPUT 7 test(s) -> /Users/aziakoser/Desktop/AIHW/test_repo/tests/test_difftest_generated.py (final run PASSED)
+12:03:44 REPORT
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 1,
+  "llm_calls": 1,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py"
+  ],
+  "kept": [
+    "test_divide_rejects_non_numeric",
+    "test_mean_basic_and_single_value",
+    "test_mean_empty_list_raises",
+    "test_percent_of_rounds_to_one_decimal",
+    "test_percent_of_zero_whole_raises",
+    "test_greet_strips_whitespace_and_excited",
+    "test_greet_blank_name_raises"
+  ],
+  "rejected": [
+    {
+      "name": "test_percent_of_wrong_expectation",
+      "status": "failed",
+      "reason": "assert 33.3 == 33.33",
+      "step": 1
+    },
+    {
+      "name": "test_placeholder",
+      "status": "useless",
+      "reason": "trivial assert (assert True)",
+      "step": 1
+    },
+    {
+      "name": "test_add_again",
+      "status": "duplicate",
+      "reason": "duplicates tests/test_calculator.py::test_add",
+      "step": 1
+    }
+  ],
+  "output_file": "/Users/aziakoser/Desktop/AIHW/test_repo/tests/test_difftest_generated.py",
+  "final_check_passed": true,
+  "seconds": 0.35
+}

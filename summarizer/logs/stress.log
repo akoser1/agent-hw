@@ -1,0 +1,6 @@
+INFO error broken.py
+INFO ok calculator.py
+INFO ok greeter.py
+INFO ok tests/test_calculator.py
+INFO ok tests/test_greeter.py
+INFO discovered=5 checked=5 errors=1 omitted=0 complete=False
