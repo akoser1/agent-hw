@@ -1,0 +1,19 @@
+{
+  "target": "/Users/aziakoser/Desktop/AIHW/test_repo",
+  "base": "HEAD",
+  "model": "claude-sonnet-5-5",
+  "steps_used": 5,
+  "llm_calls": 5,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "est_cost_usd": 0.0,
+  "changed_files": [
+    "calculator.py",
+    "greeter.py"
+  ],
+  "kept": [],
+  "rejected": [],
+  "output_file": null,
+  "final_check_passed": null,
+  "seconds": 0.09
+}

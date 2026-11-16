@@ -1,0 +1,48 @@
+Summarizer Agent Report
+Files discovered: 4 | Checked: 4 | Successful: 4 | Errors: 0 | Omitted: 0
+Validation: COMPLETE
+
+File: calculator.py
+SHA256: f47fbcfc0b438b8f3067c69a02f1d78f007d24600f855ed5692a05adfb1063f2
+Purpose: Provide basic calculator operations.
+Imports: none
+Functions:
+- add(a, b): Return the sum of two numbers. Observed: returns or produces a value.
+- divide(a, b): Divide a by b, rejecting zero divisors and non-numeric input. Observed: returns or produces a value, checks conditions.
+- mean(values): Return the average of a non-empty list of numbers. Observed: returns or produces a value, checks conditions.
+- percent_of(part, whole): Return part as a percentage of whole, rounded to 1 decimal place. Observed: returns or produces a value.
+Classes:
+- none
+Note: Static analysis only; runtime behavior is not verified.
+
+File: greeter.py
+SHA256: c01de208c9273c073d86320780f9d6c4544c321fbe06960629db28f861ad3754
+Purpose: Create greeting messages for users.
+Imports: none
+Functions:
+- none
+Classes:
+- Greeter: Produce a greeting for a given name. Methods: greet
+Note: Static analysis only; runtime behavior is not verified.
+
+File: tests/test_calculator.py
+SHA256: 4bddff6be31b2763ea1dea07b46668384128549692b7b76de96fb75dcc2f5d05
+Purpose: No module description provided; summary based on structure.
+Imports: calculator, pytest
+Functions:
+- test_add(): No docstring; behavior inferred only from code structure.
+- test_divide(): No docstring; behavior inferred only from code structure.
+- test_divide_by_zero(): No docstring; behavior inferred only from code structure. Observed: uses a context manager.
+Classes:
+- none
+Note: Static analysis only; runtime behavior is not verified.
+
+File: tests/test_greeter.py
+SHA256: 5a378c40a0e276cfa7c7bc2a622236f73df3aa5a7d6690a17784f0271aa56fae
+Purpose: No module description provided; summary based on structure.
+Imports: greeter
+Functions:
+- test_greet(): No docstring; behavior inferred only from code structure.
+Classes:
+- none
+Note: Static analysis only; runtime behavior is not verified.
